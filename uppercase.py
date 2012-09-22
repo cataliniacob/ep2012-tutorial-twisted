@@ -1,7 +1,10 @@
-from twisted.internet import protocol, reactor
+from twisted.internet import endpoints, protocol, reactor
+
+class UpperProtocol(protocol.Protocol):
+    pass
 
 factory = protocol.ServerFactory()
-factory.protocol = protocol.Protocol
+factory.protocol = UpperProtocol
 
-reactor.listenTCP(8000, factory)
+endpoints.serverFromString(reactor, 'tcp:8000').listen(factory)
 reactor.run()
