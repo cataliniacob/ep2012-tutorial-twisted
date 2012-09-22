@@ -1,27 +1,28 @@
-from twisted.internet import endpoints, protocol, reactor
+from twisted.internet import defer, endpoints, protocol, reactor
 from twisted.protocols import basic
 from twisted.web.client import getPage
 
 import time
 
 class ProxyProtocol(basic.LineReceiver):
-    def gotPage(self, data, line, start):
-        print 'Fetched {} in {} sec'.format(line, time.time() - start)
-        self.transport.write(data)
-
-    def errGettingPage(self, reason, line):
-        print 'Error while fetching {}: {}'.format(line, reason.getErrorMessage())
-
     def lineReceived(self, line):
         if not line.startswith('http://'):
             return
 
-        start = time.time()
-        print 'Fetching {}'.format(line)
-        d = getPage(line)
+        self.getPage(line)
 
-        d.addCallback(self.gotPage, line, start)
-        d.addErrback(self.errGettingPage, line)
+    @defer.inlineCallbacks
+    def getPage(self, line):
+        start = time.time()
+
+        print 'Fetching {}'.format(line)
+        try:
+            data = yield getPage(line)
+        except Exception as e:
+            print 'Error while fetching {}: {}'.format(line, e)
+        else:
+            print 'Fetched {} in {} sec'.format(line, time.time() - start)
+            self.transport.write(data)
 
 if __name__ == '__main__':
     factory = protocol.ServerFactory()
