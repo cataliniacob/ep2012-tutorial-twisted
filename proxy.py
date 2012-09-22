@@ -15,18 +15,28 @@ class ProxyProtocol(basic.LineReceiver):
     def getPage(self, line):
         start = time.time()
 
-        print 'Fetching {}'.format(line)
-        try:
-            data = yield getPage(line)
-        except Exception as e:
-            print 'Error while fetching {}: {}'.format(line, e)
+        data = self.factory.cache.get(line, None)
+        if data is not None:
+            print 'Using cache for {}'.format(line)
         else:
-            print 'Fetched {} in {} sec'.format(line, time.time() - start)
+            print 'Fetching {}'.format(line)
+            try:
+                data = yield getPage(line)
+            except Exception as e:
+                print 'Error while fetching {}: {}'.format(line, e)
+            else:
+                print 'Fetched {} in {} sec'.format(line, time.time() - start)
+                self.factory.cache[line] = data
+
+        if data is not None:
             self.transport.write(data)
 
+class CachingProxyServerFactory(protocol.ServerFactory):
+    protocol = ProxyProtocol
+    cache = {}
+
 if __name__ == '__main__':
-    factory = protocol.ServerFactory()
-    factory.protocol = ProxyProtocol
+    factory = CachingProxyServerFactory()
     endpoints.serverFromString(reactor, 'tcp:8000').listen(factory)
 
     reactor.run()
