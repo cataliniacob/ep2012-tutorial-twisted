@@ -1,7 +1,8 @@
 from twisted.internet import endpoints, protocol, reactor
 
 class UpperProtocol(protocol.Protocol):
-    pass
+    def connectionMade(self):
+        self.transport.write('Hi! Send me some text to convert to uppercase\n')
 
 factory = protocol.ServerFactory()
 factory.protocol = UpperProtocol
